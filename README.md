@@ -59,7 +59,7 @@ Threat modeling was performed using **IriusRisk** following the **STRIDE** metho
 | Muhammad Daniyal | 2023406 |
 
 **Course:** CY321 — Secure Software Development  
-**Supervisor:** Hadia
+**Supervisor:** Dr Zubair Ahmad
 
 ---
 
