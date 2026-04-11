@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Secure AI Prompt Sandbox — Admin Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .badge-low    { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+    .badge-medium { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+    .badge-high   { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+    .badge-allowed  { background: rgba(16,185,129,0.1); color: #6ee7b7; }
+    .badge-flagged  { background: rgba(245,158,11,0.1); color: #fcd34d; }
+    .badge-blocked  { background: rgba(239,68,68,0.1);  color: #fca5a5; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    .chain-valid   { color: #34d399; }
+    .chain-invalid { color: #f87171; }
+    .table-scroll { overflow-x: auto; }
+    .table-scroll::-webkit-scrollbar { height: 4px; }
+    .table-scroll::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-950 text-gray-100">
+
+  <!-- Navbar -->
+  <nav class="bg-gray-900/80 border-b border-gray-800 backdrop-blur-sm sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
+          <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+        </div>
+        <span class="font-semibold text-sm text-white">Prompt Sandbox</span>
+        <span class="text-gray-600 text-xs">/</span>
+        <span class="text-xs text-indigo-400 font-medium">Admin Panel</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="/chat.html" class="text-xs text-gray-400 hover:text-gray-300 border border-gray-700 px-2.5 py-1 rounded-md transition-colors">← Chat</a>
+        <button onclick="logout()" class="text-xs text-gray-400 hover:text-gray-300 border border-gray-700 px-2.5 py-1 rounded-md transition-colors">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto px-4 py-8 space-y-6">
+
+    <!-- Header + Chain Status -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-xl font-bold text-white">Audit Log</h1>
+        <p class="text-sm text-gray-500 mt-0.5">SHA-256 hash-chained tamper-evident event log</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="chain-status" class="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
+          <div id="chain-dot" class="w-2 h-2 rounded-full bg-gray-600"></div>
+          <span id="chain-text" class="text-xs text-gray-400">Checking chain…</span>
+        </div>
+        <button onclick="loadLogs()"
+          class="text-xs bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 px-3 py-2 rounded-lg transition-colors">
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div id="stats-row" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+
+    <!-- Log table -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div class="table-scroll">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-800">
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Risk</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Decision</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Flags</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prompt Hash</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chain</th>
+            </tr>
+          </thead>
+          <tbody id="log-table-body" class="divide-y divide-gray-800/50">
+            <tr>
+              <td colspan="7" class="px-4 py-8 text-center text-gray-600 text-sm">Loading audit log…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const role  = localStorage.getItem('role');
+    if (!token || role !== 'admin') window.location.href = '/chat.html';
+
+    function logout() { localStorage.clear(); window.location.href = '/'; }
+
+    function escHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function riskBadge(score) {
+      const cls = score === 'Low' ? 'badge-low' : score === 'Medium' ? 'badge-medium' : 'badge-high';
+      return `<span class="text-xs font-semibold px-2 py-0.5 rounded-full ${cls}">${escHtml(score)}</span>`;
+    }
+
+    function decisionBadge(d) {
+      const cls = d === 'allowed' ? 'badge-allowed' : d === 'flagged' ? 'badge-flagged' : 'badge-blocked';
+      return `<span class="text-xs font-medium px-2 py-0.5 rounded ${cls}">${escHtml(d)}</span>`;
+    }
+
+    function formatTs(ts) {
+      const d = new Date(ts);
+      return d.toLocaleString('en-PK', { month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    }
+
+    function statCard(label, value, color) {
+      return `
+        <div class="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3">
+          <p class="text-xs text-gray-500 mb-1">${label}</p>
+          <p class="text-2xl font-bold ${color}">${value}</p>
+        </div>`;
+    }
+
+    async function loadLogs() {
+      try {
+        const [logsRes, chainRes] = await Promise.all([
+          fetch('/admin/logs',         { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch('/admin/verify-chain', { headers: { 'Authorization': `Bearer ${token}` } }),
+        ]);
+
+        if (logsRes.status === 403) { window.location.href = '/chat.html'; return; }
+        if (logsRes.status === 401) { logout(); return; }
+
+        const { logs }  = await logsRes.json();
+        const chain     = await chainRes.json();
+
+        // Chain status
+        const dot  = document.getElementById('chain-dot');
+        const text = document.getElementById('chain-text');
+        if (chain.valid) {
+          dot.className  = 'w-2 h-2 rounded-full bg-green-400';
+          text.className = 'text-xs chain-valid';
+          text.textContent = `Chain intact — ${chain.total} entries verified`;
+        } else {
+          dot.className  = 'w-2 h-2 rounded-full bg-red-400';
+          text.className = 'text-xs chain-invalid';
+          text.textContent = `⚠ Chain broken at ${chain.broken_at}`;
+        }
+
+        // Stats
+        const blocked  = logs.filter(l => l.decision === 'blocked').length;
+        const flagged  = logs.filter(l => l.decision === 'flagged').length;
+        const allowed  = logs.filter(l => l.decision === 'allowed').length;
+        const highRisk = logs.filter(l => l.risk_score === 'High').length;
+        document.getElementById('stats-row').innerHTML =
+          statCard('Total Events', logs.length, 'text-white') +
+          statCard('Blocked',  blocked,  'text-red-400') +
+          statCard('Flagged',  flagged,  'text-yellow-400') +
+          statCard('High Risk', highRisk, 'text-orange-400');
+
+        // Table
+        if (!logs.length) {
+          document.getElementById('log-table-body').innerHTML =
+            `<tr><td colspan="7" class="px-4 py-8 text-center text-gray-600 text-sm">No events logged yet.</td></tr>`;
+          return;
+        }
+
+        const rows = [...logs].reverse().map(e => `
+          <tr class="transition-colors">
+            <td class="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">${formatTs(e.timestamp)}</td>
+            <td class="px-4 py-3 text-xs text-gray-300 font-medium">${escHtml(e.user_id)}</td>
+            <td class="px-4 py-3">${riskBadge(e.risk_score)}</td>
+            <td class="px-4 py-3">${decisionBadge(e.decision)}</td>
+            <td class="px-4 py-3">
+              <div class="flex flex-wrap gap-1">
+                ${e.flags.length
+                  ? e.flags.map(f => `<span class="text-xs bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded mono">${escHtml(f)}</span>`).join('')
+                  : '<span class="text-xs text-gray-600">—</span>'}
+              </div>
+            </td>
+            <td class="px-4 py-3 text-xs mono text-gray-600">${escHtml(e.prompt_hash.slice(0,12))}…</td>
+            <td class="px-4 py-3">
+              <span class="text-xs ${chain.valid ? 'chain-valid' : (chain.broken_at === e.entry_id ? 'chain-invalid' : 'chain-valid')}">
+                ${chain.valid ? '✓' : (chain.broken_at === e.entry_id ? '✗ broken' : '✓')}
+              </span>
+            </td>
+          </tr>`).join('');
+        document.getElementById('log-table-body').innerHTML = rows;
+
+      } catch (err) {
+        document.getElementById('log-table-body').innerHTML =
+          `<tr><td colspan="7" class="px-4 py-8 text-center text-red-400 text-sm">Error loading logs: ${escHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    loadLogs();
+  </script>
+</body>
+</html>

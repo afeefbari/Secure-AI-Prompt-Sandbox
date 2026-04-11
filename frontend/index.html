@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Secure AI Prompt Sandbox — Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .gradient-border {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      padding: 1px;
+      border-radius: 0.75rem;
+    }
+    .input-field {
+      background: #111827;
+      border: 1px solid #374151;
+      color: #f9fafb;
+      width: 100%;
+      padding: 0.625rem 1rem;
+      border-radius: 0.5rem;
+      outline: none;
+      transition: border-color 0.15s;
+      font-size: 0.875rem;
+    }
+    .input-field:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .input-field::placeholder { color: #6b7280; }
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+      font-weight: 600;
+      padding: 0.625rem 1.25rem;
+      border-radius: 0.5rem;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      font-size: 0.875rem;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error-msg { color: #f87171; font-size: 0.8rem; margin-top: 0.5rem; display: none; }
+    .tab-btn { transition: all 0.15s; }
+    .tab-btn.active { color: #818cf8; border-bottom: 2px solid #818cf8; }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+
+  <!-- Background grid -->
+  <div class="fixed inset-0 bg-[linear-gradient(rgba(99,102,241,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.03)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none"></div>
+
+  <div class="w-full max-w-md relative z-10">
+
+    <!-- Logo / Header -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 mb-4">
+        <svg class="w-7 h-7 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-white">Secure AI Prompt Sandbox</h1>
+      <p class="text-gray-500 text-sm mt-1">Protected LLM middleware — CY321</p>
+    </div>
+
+    <!-- Card -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-8 shadow-2xl">
+
+      <!-- Tabs -->
+      <div class="flex border-b border-gray-800 mb-6">
+        <button id="tab-login" onclick="switchTab('login')"
+          class="tab-btn active pb-3 mr-6 text-sm font-medium text-gray-400">
+          Sign In
+        </button>
+        <button id="tab-register" onclick="switchTab('register')"
+          class="tab-btn pb-3 text-sm font-medium text-gray-400">
+          Register
+        </button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="form-login" onsubmit="handleLogin(event)">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Username</label>
+            <input id="login-username" type="text" placeholder="Enter username"
+              class="input-field" required autocomplete="username" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Password</label>
+            <input id="login-password" type="password" placeholder="Enter password"
+              class="input-field" required autocomplete="current-password" />
+          </div>
+          <p id="login-error" class="error-msg"></p>
+          <button type="submit" id="login-btn" class="btn-primary mt-2">Sign In</button>
+        </div>
+      </form>
+
+      <!-- Register Form -->
+      <form id="form-register" onsubmit="handleRegister(event)" style="display:none">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Username</label>
+            <input id="reg-username" type="text" placeholder="Choose a username"
+              class="input-field" required autocomplete="username" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Password</label>
+            <input id="reg-password" type="password" placeholder="Choose a password"
+              class="input-field" required autocomplete="new-password" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Role</label>
+            <select id="reg-role" class="input-field">
+              <option value="user">Standard User</option>
+              <option value="admin">Administrator</option>
+            </select>
+          </div>
+          <p id="reg-error" class="error-msg"></p>
+          <button type="submit" id="reg-btn" class="btn-primary mt-2">Create Account</button>
+        </div>
+      </form>
+
+    </div>
+
+    <p class="text-center text-xs text-gray-600 mt-6">
+      All prompts are validated through a multi-layer security engine before reaching the LLM.
+    </p>
+  </div>
+
+  <script>
+    // Redirect if already logged in
+    if (localStorage.getItem('token')) window.location.href = '/chat.html';
+
+    function switchTab(tab) {
+      document.getElementById('form-login').style.display = tab === 'login' ? 'block' : 'none';
+      document.getElementById('form-register').style.display = tab === 'register' ? 'block' : 'none';
+      document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+      document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('login-btn');
+      const errEl = document.getElementById('login-error');
+      btn.disabled = true; btn.textContent = 'Signing in…';
+      errEl.style.display = 'none';
+      try {
+        const res = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('login-username').value,
+            password: document.getElementById('login-password').value,
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Login failed');
+        localStorage.setItem('token', data.access_token);
+        // Decode role from JWT payload
+        const payload = JSON.parse(atob(data.access_token.split('.')[1]));
+        localStorage.setItem('role', payload.role);
+        localStorage.setItem('username', payload.sub);
+        window.location.href = '/chat.html';
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+      } finally {
+        btn.disabled = false; btn.textContent = 'Sign In';
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const btn = document.getElementById('reg-btn');
+      const errEl = document.getElementById('reg-error');
+      btn.disabled = true; btn.textContent = 'Creating account…';
+      errEl.style.display = 'none';
+      try {
+        const res = await fetch('/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('reg-username').value,
+            password: document.getElementById('reg-password').value,
+            role: document.getElementById('reg-role').value,
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Registration failed');
+        switchTab('login');
+        document.getElementById('login-username').value = document.getElementById('reg-username').value;
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+      } finally {
+        btn.disabled = false; btn.textContent = 'Create Account';
+      }
+    }
+  </script>
+</body>
+</html>
