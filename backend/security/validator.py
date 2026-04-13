@@ -5,9 +5,7 @@ Max prompt length (2000 chars) is enforced BEFORE any regex to prevent ReDoS.
 import re
 import unicodedata
 from dataclasses import dataclass, field
-
-MAX_PROMPT_LENGTH = 2000
-
+MAX_PROMPT_LENGTH = 15000
 # ── Attack pattern definitions ─────────────────────────────────────────────────
 
 # 1. Sandwich Attack — instruction-override phrases embedded in content

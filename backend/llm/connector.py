@@ -21,8 +21,8 @@ def query_llm(user_prompt: str, history: list[dict] | None = None) -> str:
     messages = [{"role": "system", "content": get_system_prompt()}]
 
     if history:
-        # Include last 6 messages max to keep context manageable
-        messages.extend(history[-6:])
+        # Include last 40 messages to give a large context window
+        messages.extend(history[-40:])
 
     messages.append({"role": "user", "content": user_prompt})
 
