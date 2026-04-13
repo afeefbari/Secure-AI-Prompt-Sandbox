@@ -12,13 +12,26 @@ MAX_PROMPT_LENGTH = 2000
 
 # 1. Sandwich Attack — instruction-override phrases embedded in content
 SANDWICH_PATTERNS = [
-    r"ignore\s+(all\s+)?(previous|above|prior|earlier)\s+(instructions?|prompts?|context|rules?)",
-    r"disregard\s+(all\s+)?(previous|above|prior|earlier)\s+(instructions?|prompts?|context|rules?)",
-    r"forget\s+(all\s+)?(previous|above|prior|earlier)\s+(instructions?|prompts?|context|rules?)",
-    r"discard\s+(all\s+)?(previous|above|prior|earlier|your|current)?\s*(instructions?|prompts?|context|rules?|persona|guidelines?)",
+    # Direct override — simple, dedicated patterns (no complex nested groups)
+    r"ignore\s+(the|all|any|these|those|all\s+the)?\s*(previous|above|prior|earlier)\s*(instructions?|prompts?|context|rules?|guidelines?)?",
+    r"disregard\s+(the|all|any|these|those|all\s+the)?\s*(previous|above|prior|earlier|above)",
+    r"forget\s+(the|all|any|these|those)?\s*(previous|above|prior|earlier)\s*(instructions?|prompts?|context|rules?)?",
+    r"discard\s+(the|all|any|your|current)?\s*(previous|above|prior|instructions?|prompts?|context|rules?|persona|guidelines?)",
     r"override\s+(the\s+)?(system|previous|prior)\s+(instructions?|prompts?|rules?)",
     r"do\s+not\s+follow\s+(the\s+)?(previous|above|prior|system)\s+(instructions?|rules?)",
     r"drop\s+(your|all|the)?\s*(guidelines?|restrictions?|rules?|persona|instructions?)",
+    # Bare 'disregard/ignore' + filler + conjunction (catches mid-sentence injections)
+    r"(disregard|ignore)\s+(the|that|this|these|those|what|it|all)[^.!?]{0,50}(and|then|now|also|but)\s+(output|reveal|tell|show|give|print|display|list)",
+    # Paraphrase bypasses — softer language that means the same thing
+    r"(set|put)\s+aside\s+(those|these|the|all|your|any)\s*(instructions?|rules?|guidelines?|restrictions?|policies|constraints)",
+    r"(without|ignoring|aside\s+from)\s+(your\s+)?(restrictions?|constraints?|rules?|guidelines?|limitations?)",
+    r"as\s+if\s+(you\s+)?(had|have)\s+no\s+(rules?|restrictions?|constraints?|guidelines?)",
+    r"pretend\s+(those|these|the|that|there\s+are)\s+no\s+(rules?|restrictions?|guidelines?|instructions?)",
+    # Prompt extraction — repeating prior context to leak system prompt
+    r"repeat\s+(everything|all|the\s+above|what\s+you|your\s+instructions?)\s*(above|before|prior|so\s+far)?",
+    r"(print|output|show|display|echo)\s+(all|everything|the\s+above|what\s+(came|was)\s+before)",
+    r"tell\s+me\s+(everything|all)\s+(above|before|you\s+were\s+told)",
+    r"what\s+(are|were)\s+your\s+(exact\s+)?(instructions?|initial\s+prompt|system\s+prompt)",
 ]
 
 # 2. Role Manipulation — jailbreak-style identity overrides
@@ -57,6 +70,29 @@ ROLE_KEYWORDS = [
     "discard your",
     "drop your",
     "shed your",
+    # Privileged role assumption
+    "act as admin",
+    "act as root",
+    "act as developer",
+    "act as a developer",
+    "act as an admin",
+    "act as the admin",
+    "act as superuser",
+    "act as system",
+    "as an administrator",
+    "with admin privileges",
+    "with administrator access",
+    "in admin mode",
+]
+
+# 2b. Hidden instruction extraction — semantic class for info extraction attacks
+EXTRACTION_PATTERNS = [
+    r"(print|show|reveal|output|display|expose|share|tell\s+me)\s+(your\s+)?(hidden|internal|secret|system|initial|original|full)\s+(instructions?|rules?|config(?:uration)?|policies|guidelines?|prompt)",
+    r"output\s+(your\s+)?(full|complete|entire|whole)\s+(config(?:uration)?|settings?|instructions?|rules?|setup|parameters?)",
+    r"what\s+(hidden|secret|internal|system)\s+(instructions?|rules?|config|policies)\s+(do\s+you\s+have|are\s+you\s+following)",
+    r"(show|display|print|reveal)\s+(the\s+)?(backend|server|system)\s+(config(?:uration)?|rules?|instructions?|settings?)",
+    r"(ignore|bypass|override)\s+(all\s+)?(safety|content|security)\s+(rules?|filters?|policies|restrictions?|guidelines?)",
+    r"what\s+are\s+you\s+(not\s+allowed|restricted|forbidden|prohibited)\s+to\s+(do|say|share|reveal)",
 ]
 
 # 3. Indirect Injection — URL + trigger phrase combos
@@ -132,6 +168,15 @@ def validate_prompt(prompt: str) -> ValidationResult:
             result.flags.append("role_manipulation")
             result.reasons.append(
                 "Prompt attempts to override the AI's identity or remove its restrictions."
+            )
+            break
+
+    # ── 2b. Hidden Instruction Extraction ──────────────────────────────────────
+    for pattern in EXTRACTION_PATTERNS:
+        if re.search(pattern, prompt_lower):
+            result.flags.append("instruction_extraction")
+            result.reasons.append(
+                "Prompt attempts to extract hidden system instructions, configuration, or internal policies."
             )
             break
 

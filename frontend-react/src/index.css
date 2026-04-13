@@ -1,0 +1,237 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── KaTeX math overrides ──────────────────────────────────────────────────── */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5em 0;
+  margin: 0.6em 0;
+  text-align: center;
+}
+.katex { color: var(--text-1); font-size: 1em; }
+.md-content .katex-display > .katex { font-size: 1.05em; }
+
+/* ── Design tokens — Horizon-inspired light/dark ───────────────────────────── */
+:root {
+  /* Light theme is the DEFAULT (matches Horizon AI reference) */
+  --bg:            #f4f6fb;
+  --bg-grad:       linear-gradient(160deg, #f0f4ff 0%, #f4f6fb 60%, #f7f5ff 100%);
+
+  --surface:       #ffffff;
+  --elevated:      #ffffff;
+  --sidebar-bg:    #ffffff;
+
+  /* Primary — indigo/violet like Horizon */
+  --primary:        #6366f1;
+  --primary-hover:  #4f46e5;
+  --primary-active: #4338ca;
+
+  /* Accent */
+  --accent:         #6366f1;
+  --accent-soft:    rgba(99, 102, 241, 0.08);
+  --accent-mid:     rgba(99, 102, 241, 0.15);
+
+  /* Borders — very subtle */
+  --border:         #e8ebf4;
+  --border-strong:  #d4d8e8;
+
+  /* Text hierarchy */
+  --text-1:  #1a1d2e;
+  --text-2:  #4b5270;
+  --text-3:  #8b90a8;
+  --text-4:  rgba(100, 105, 130, 0.45);
+
+  /* User bubble — indigo/violet gradient */
+  --bubble-user:       linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
+  --bubble-user-solid: #6366f1;
+
+  /* Pipeline status */
+  --step-pending:  rgba(99, 102, 241, 0.12);
+  --step-active:   #6366f1;
+  --step-complete: #10b981;
+  --step-blocked:  #ef4444;
+
+  /* Elevation shadows — Horizon-style: soft, layered */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-sidebar: 2px 0 16px rgba(99,102,241,0.06);
+}
+
+[data-theme="dark"] {
+  --bg:            #0f1117;
+  --bg-grad:       linear-gradient(160deg, #0d0f1a 0%, #0f1117 60%, #110f1a 100%);
+
+  --surface:       #181b27;
+  --elevated:      #1e2130;
+  --sidebar-bg:    #14161f;
+
+  --primary:        #6366f1;
+  --primary-hover:  #818cf8;
+  --primary-active: #4f46e5;
+
+  --accent:         #818cf8;
+  --accent-soft:    rgba(99, 102, 241, 0.10);
+  --accent-mid:     rgba(99, 102, 241, 0.18);
+
+  --border:         #252838;
+  --border-strong:  #2f3347;
+
+  --text-1:  #e8eaf6;
+  --text-2:  #9098b8;
+  --text-3:  #555c7a;
+  --text-4:  rgba(80, 88, 120, 0.45);
+
+  --bubble-user:       linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  --bubble-user-solid: #4f46e5;
+
+  --step-pending:  rgba(99, 102, 241, 0.12);
+  --step-active:   #818cf8;
+  --step-complete: #34d399;
+  --step-blocked:  #f87171;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.25);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.35);
+  --shadow-sidebar: 2px 0 16px rgba(0,0,0,0.3);
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; }
+
+html {
+  transition: background-color 0.25s ease;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  color: var(--text-1);
+  background: var(--bg);
+  background-image: var(--bg-grad);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease, color 0.2s ease;
+}
+
+/* ── Scrollbars — thin, tasteful ────────────────────────────────────────────── */
+::-webkit-scrollbar        { width: 4px; height: 4px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--border-strong); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); opacity: 0.5; }
+
+/* ── Utilities ──────────────────────────────────────────────────────────────── */
+.text-1 { color: var(--text-1); }
+.text-2 { color: var(--text-2); }
+.text-3 { color: var(--text-3); }
+.surface { background: var(--surface); }
+.elevated { background: var(--elevated); }
+
+/* ── Streaming cursor ───────────────────────────────────────────────────────── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.cursor {
+  display: inline-block;
+  width: 2px;
+  height: 13px;
+  background: var(--accent);
+  margin-left: 2px;
+  vertical-align: middle;
+  border-radius: 2px;
+  animation: blink 0.95s step-end infinite;
+}
+
+/* ── Scanning animation ──────────────────────────────────────────────────────── */
+@keyframes scan {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+.scan-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(99,102,241,0.5), transparent);
+  animation: scan 1.4s ease-in-out infinite;
+}
+
+/* ── Horizon-style card ──────────────────────────────────────────────────────── */
+.horizon-card {
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Markdown content in AI bubbles ─────────────────────────────────────────── */
+.md-content p               { margin-bottom: 0.65em; line-height: 1.78; font-size: 15px; }
+.md-content p:last-child    { margin-bottom: 0; }
+.md-content strong          { color: var(--text-1); font-weight: 600; }
+.md-content em              { color: var(--text-2); font-style: italic; }
+.md-content ol              { padding-left: 1.5em; margin: 0.55em 0; list-style: decimal; font-size: 15px; }
+.md-content ul              { padding-left: 1.5em; margin: 0.55em 0; list-style: disc; font-size: 15px; }
+.md-content li              { margin-bottom: 0.35em; line-height: 1.72; padding-left: 0.2em; }
+.md-content h1,
+.md-content h2,
+.md-content h3              { font-weight: 600; color: var(--text-1); margin: 0.9em 0 0.4em; }
+.md-content h1              { font-size: 1.08em; }
+.md-content h2              { font-size: 1.02em; }
+.md-content h3              { font-size: 0.97em; }
+.md-content h1:first-child,
+.md-content h2:first-child  { margin-top: 0; }
+.md-content code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.79em;
+  background: var(--accent-soft);
+  padding: 0.18em 0.45em;
+  border-radius: 5px;
+  border: 1px solid var(--border-strong);
+  color: var(--primary);
+}
+.md-content pre {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.9em 1.1em;
+  margin: 0.6em 0;
+  overflow-x: auto;
+  box-shadow: var(--shadow-sm);
+}
+.md-content pre code { background: none; border: none; padding: 0; font-size: 0.83em; color: var(--text-1); }
+.md-content a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.md-content a:hover { color: var(--primary-hover); }
+.md-content blockquote {
+  border-left: 3px solid var(--accent-mid);
+  padding-left: 0.85em;
+  margin: 0.6em 0;
+  color: var(--text-3);
+  border-radius: 0 4px 4px 0;
+}
+.md-content hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0.75em 0;
+}
+.md-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.6em 0;
+  font-size: 0.9em;
+}
+.md-content th,
+.md-content td {
+  border: 1px solid var(--border);
+  padding: 0.4em 0.7em;
+  text-align: left;
+}
+.md-content th {
+  background: var(--accent-soft);
+  color: var(--text-1);
+  font-weight: 600;
+}

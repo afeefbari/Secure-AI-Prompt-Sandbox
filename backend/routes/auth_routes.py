@@ -36,4 +36,4 @@ async def login(request: Request, body: UserLogin):
             detail="Incorrect username or password",
         )
     token = create_access_token({"sub": user["username"], "role": user["role"]})
-    return {"access_token": token, "token_type": "bearer"}
+    return {"access_token": token, "token_type": "bearer", "username": user["username"], "role": user["role"]}

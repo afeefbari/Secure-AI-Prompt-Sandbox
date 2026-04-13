@@ -27,3 +27,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# AI session context — internal only
+.claude/
+claude_handoff.md
