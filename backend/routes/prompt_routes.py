@@ -57,6 +57,7 @@ async def submit_prompt(
         decision=decision,
         risk_score=risk_score,
         flags=validation.flags,
+        prompt_preview=prompt,
     )
 
     # ── Block: no LLM call ─────────────────────────────────────────────────────

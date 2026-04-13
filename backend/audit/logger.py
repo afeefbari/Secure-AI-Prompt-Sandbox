@@ -44,6 +44,7 @@ def log_event(
     decision: str,
     risk_score: str,
     flags: list[str],
+    prompt_preview: str = "",
 ) -> dict:
     """Append a tamper-evident audit entry. Returns the written entry."""
     with _lock:
@@ -53,6 +54,7 @@ def log_event(
             "user_id": user_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "prompt_hash": prompt_hash,
+            "prompt_preview": prompt_preview[:200] if prompt_preview else "",
             "decision": decision,
             "risk_score": risk_score,
             "flags": flags,
