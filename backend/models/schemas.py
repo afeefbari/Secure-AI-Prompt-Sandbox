@@ -35,14 +35,14 @@ class PromptRequest(BaseModel):
 
 
 class ValidationResult(BaseModel):
-    risk_score: Literal["Low", "Medium", "High"]
+    risk_score: float          # 0.0–1.0 precise severity score
     flags: list[str]
     reason: str
 
 
 class PromptResponse(BaseModel):
     decision: Literal["allowed", "flagged", "blocked"]
-    risk_score: Literal["Low", "Medium", "High"]
+    risk_score: float          # 0.0–1.0 precise severity score
     flags: list[str]
     reason: str
     llm_response: Optional[str] = None

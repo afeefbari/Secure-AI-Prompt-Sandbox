@@ -45,7 +45,7 @@ async def submit_prompt(
 
     # ── Validate ───────────────────────────────────────────────────────────────
     validation = validate_prompt(prompt)
-    risk_score = score(validation.flags)
+    risk_score = score(validation.flags, validation.severities)
     decision, tip = decide(risk_score, validation.flags)
     reason = " | ".join(validation.reasons) if validation.reasons else "No threats detected."
 
@@ -55,7 +55,7 @@ async def submit_prompt(
         user_id=current_user["username"],
         prompt_hash=prompt_hash,
         decision=decision,
-        risk_score=risk_score,
+        risk_score=str(risk_score),   # Store float as string e.g. "0.85"
         flags=validation.flags,
         prompt_preview=prompt,
     )

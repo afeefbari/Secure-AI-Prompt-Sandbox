@@ -6,12 +6,26 @@ import AdminPanel from './components/AdminPanel';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export const PIPELINE_STEPS = [
-  { id: 'input_analysis',  label: 'Input Analysis',   desc: 'Parsing user intent and message context' },
-  { id: 'threat_detection',label: 'Threat Detection',  desc: 'Scanning for injection patterns and unsafe content' },
-  { id: 'context_alignment',label:'Context Alignment', desc: 'Aligning request with system security policies' },
-  { id: 'response_planning',label:'Response Planning', desc: 'Structuring a safe and contextually appropriate reply' },
-  { id: 'output_validation',label:'Output Validation', desc: 'Final safety and quality verification complete' },
+  { id: 'sandwich_attack',     label: 'Layer 1: Instruction Override', desc: 'Detecting sandwich attacks and system overrides' },
+  { id: 'role_manipulation',   label: 'Layer 2: Role Manipulation',    desc: 'Scanning for jailbreaks and privilege escalation' },
+  { id: 'indirect_injection',  label: 'Layer 3: Indirect Injection',   desc: 'Analyzing URLs and filesystem execution triggers' },
+  { id: 'multilingual_bypass', label: 'Layer 4: Multilingual Bypass',  desc: 'Checking for translated override commands' },
+  { id: 'attention_blink',     label: 'Layer 5: Attention Blink',      desc: 'Scanning for obfuscation, encoding, and noise' },
 ];
+
+// Map specific sub-flags to their parent layer index (0-4)
+const FLAG_TO_LAYER = {
+  sandwich_attack: 0,
+  instruction_extraction: 0,
+  role_manipulation: 1,
+  roleplay_escape: 1,
+  privilege_escalation: 1,
+  indirect_injection: 2,
+  multilingual_bypass: 3,
+  attention_blink: 4,
+  encoding_attack: 4,
+  length_exceeded: 4,
+};
 
 const initialSteps = () => PIPELINE_STEPS.map(() => ({ status: 'pending', meta: null }));
 const makeId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -147,14 +161,7 @@ function AuthedApp({ onLogout, theme, toggleTheme }) {
     const userMsg = { id: makeId(), role: 'user', content: text, ts: Date.now() };
     setMessages(prev => [...prev, userMsg]);
 
-    // Step 0: Input Analysis
-    setStep(0, 'active');
-    await sleep(300);
-    setStep(0, 'complete');
-
-    // Step 1: Threat Detection — concurrent with API call
-    setStep(1, 'active');
-
+    // 1. Instantly call backend to get validation results
     let data;
     try {
       const res = await fetch('/submit-prompt', {
@@ -165,19 +172,43 @@ function AuthedApp({ onLogout, theme, toggleTheme }) {
       if (res.status === 401) { localStorage.clear(); onLogout(); return; }
       data = await res.json();
     } catch {
-      setStep(1, 'blocked', { reason: 'Network error' });
+      setStep(0, 'blocked', { reason: 'Network error connecting to security engine' });
       setMessages(prev => [...prev, { id: makeId(), role: 'error', content: 'Could not reach the server.' }]);
       setIsProcessing(false);
       return;
     }
 
     setLastSecurity({ risk: data.risk_score, flags: data.flags, decision: data.decision });
-    await sleep(100);
-    setStep(1, 'complete', { risk: data.risk_score, flags: data.flags });
+    const flags = data.flags || [];
+    
+    // 2. Map triggered flags to layers
+    const triggeredLayers = new Set();
+    flags.forEach(f => {
+      if (FLAG_TO_LAYER[f] !== undefined) triggeredLayers.add(FLAG_TO_LAYER[f]);
+    });
 
-    // Blocked
-    if (data.decision === 'blocked') {
-      setStep(2, 'blocked', { reason: 'Request blocked by security policy' });
+    // 3. Sequentially animate the 5 layers
+    let wasBlocked = false;
+    for (let i = 0; i < PIPELINE_STEPS.length; i++) {
+      setStep(i, 'active');
+      await sleep(180); // Scanning animation delay
+      
+      if (triggeredLayers.has(i)) {
+        // This layer caught an attack
+        if (data.decision === 'blocked') {
+          setStep(i, 'blocked', { reason: data.reason, flags, risk: data.risk_score });
+          wasBlocked = true;
+          break; // Stop pipeline propagation
+        } else {
+          // It's just flagged (medium/low), show completion with risk meta but continue
+          setStep(i, 'complete', { flags, risk: data.risk_score });
+        }
+      } else {
+        setStep(i, 'complete');
+      }
+    }
+
+    if (wasBlocked) {
       const blockedMsg = {
         id: makeId(), role: 'blocked', content: data.reason,
         tip: data.reformulation_tip, risk: data.risk_score, flags: data.flags,
@@ -188,25 +219,14 @@ function AuthedApp({ onLogout, theme, toggleTheme }) {
         return next;
       });
       setIsProcessing(false);
+      setPipelineIdle(false);
       return;
     }
-
-    // Step 2 & 3
-    setStep(2, 'active');
-    await sleep(270);
-    setStep(2, 'complete');
-
-    setStep(3, 'active');
-    await sleep(230);
-    setStep(3, 'complete');
 
     // Typing indicator — feels natural before streaming starts
     setIsTyping(true);
     await sleep(420);
     setIsTyping(false);
-
-    // Step 4: Output Validation + stream
-    setStep(4, 'active');
 
     const aiId = makeId();
     setMessages(prev => [...prev, {
@@ -221,7 +241,6 @@ function AuthedApp({ onLogout, theme, toggleTheme }) {
     // Persist full conversation after exchange completes
     upsertChat(chatId, messagesRef.current);
 
-    setStep(4, 'complete');
     setPipelineIdle(false);
     setIsProcessing(false);
   }, [isProcessing, token, resetPipeline, setStep, setMessages, streamResponse, upsertChat, onLogout]);
