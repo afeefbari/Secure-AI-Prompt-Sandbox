@@ -22,12 +22,19 @@ As LLMs integrate into production systems, they introduce vulnerabilities like *
 The sandbox employs a sequential, rule-based security pipeline that inspects every prompt before LLM routing:
 
 1. **Sandwich Attack Detection**: Detects prompts encapsulating malicious requests wrapped in "ignore previous instructions" framing.
-2. **Role Manipulation (Jailbreak) Detection**: Blocks attempts to override the AI's system prompt (e.g., DAN mode, "you have no rules", "act as an unrestricted AI").
-3. **Indirect Injection Defense**: Flags high-risk prompts containing external URLs mixed with trigger execution phrases ("summarize this link").
-4. **Multilingual/Encoding Bypass**: Detects obfuscation attempts using non-Latin blocks mixed with translated override keywords to bypass standard English filters.
-5. **Attention Blink/Noise**: Flags prompts with high densities of invisible zero-width characters (`\u200b`) or heavy special character noise meant to confuse the LLM parser.
+2. **Role Manipulation (Jailbreak) Detection**: Blocks attempts to override the AI's system prompt (e.g., DAN mode, "you have no rules", "act as an unrestricted AI"). Also includes advanced fictional roleplay escapes and privilege escalation.
+3. **Indirect Injection Defense**: Flags high-risk prompts containing external URLs or filesystem paths mixed with trigger execution phrases ("summarize this link").
+4. **Multilingual Bypass**: Detects obfuscation attempts using non-Latin blocks mixed with translated override keywords to bypass standard English filters.
+5. **Attention Blink & Obfuscation**: Flags prompts with high densities of invisible zero-width characters, spaced tokens, base64 payloads, or leetspeak encoding.
 
-*Note: While highly effective and extremely fast, this rule-based approach represents Phase 1 (Deliverable 2). Future iterations (Deliverable 3) research semantic LLM-as-a-Judge guardrails to catch creatively paraphrased zero-day injection attacks.*
+### 🧮 Precision Risk Scoring
+Rather than a naive pass/fail count, the pipeline uses a layered **Mathematical Severity Scorer**:
+- **CRITICAL (0.95)**: Absolute blockers like explicit Jailbreaks.
+- **HIGH (0.80)**: Strong attack signals like Base64 obfuscation.
+- **MEDIUM (0.55)**: Flags for suspicious hypothetical phrasing.
+- **Multi-Flag Bonus**: Triggers a geometric risk multiplier if multiple attack vectors are hit simultaneously (e.g., Leetspeak + Sandwich attack = High Risk Block).
+
+*Note: While highly effective and extremely fast, this rule-based approach represents Phase 1 (Deliverable 2). Future iterations (Deliverable 3) reserve scope for semantic LLM-as-a-Judge guardrails to catch creatively paraphrased zero-day injection attacks.*
 
 ---
 
@@ -41,38 +48,80 @@ Accountability is just as critical as prevention. The Sandbox includes a **Tampe
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Detailed Installation & Setup
 
-### 1. Prerequisites
-- Python 3.12+
-- Node.js 18+ & npm
-- A [Groq API Key](https://console.groq.com/) for LLM inference.
+This application uses a unified server architecture where the FastAPI backend securely serves the optimized React frontend.
 
-### 2. Backend Setup
+### 1. System Requirements
+- **Python**: Version 3.12 or newer.
+- **Node.js**: Version 18 or newer (with `npm`).
+- **Groq API Key**: Essential for LLM inference. Get one free at [console.groq.com](https://console.groq.com/).
+
+### 2. Clone the Repository
 ```bash
-cd backend
+git clone https://github.com/afeefbari/Secure-AI-Prompt-Sandbox.git
+cd Secure-AI-Prompt-Sandbox
+```
+
+### 3. Frontend Build Pipeline (React + Vite)
+You must build the frontend first. The resulting static assets are piped directly into the FastAPI `static/` directory to bypass CORS complexities and enforce same-origin security.
+
+```bash
+# Navigate to the React workspace
+cd frontend-react
+
+# Install Node dependencies
+npm install
+
+# Build the production bundle
+npm run build
+```
+*Note: Vite will compile the React SPA and automatically deposit the `index.html` and assets into the `../backend/frontend` folder.*
+
+### 4. Backend Environment Setup (FastAPI)
+Return to the project root and enter the backend directory.
+
+```bash
+# Navigate to backend
+cd ../backend
+
+# Provide a clean virtual environment
 python -m venv venv
-venv\Scripts\activate   # Windows
+
+# Activate the virtual environment
+# --> For Windows Command Prompt:
+venv\Scripts\activate.bat
+# --> For Windows PowerShell:
+.\venv\Scripts\Activate.ps1
+# --> For Linux/macOS:
+source venv/bin/activate
+
+# Install required Python dependencies
 pip install -r requirements.txt
 ```
-Create a `.env` file in the `backend/` directory:
+
+### 5. Environment Variables Formatted (.env)
+Create a `.env` file directly inside the `backend/` directory. You will need a strong secret key for JWT session integrity. 
+You can generate a fast secret key by running `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` in your terminal.
+
 ```env
-GROQ_API_KEY=gsk_your_api_key_here
-SECRET_KEY=your_secure_random_jwt_secret
+# backend/.env 
+GROQ_API_KEY=gsk_your_groq_api_key_here
+SECRET_KEY=94b7e8d380e227... (insert your 64-character hex key)
 ```
-Run the FastAPI Server:
+
+### 6. Boot the Server
+Start the Uvicorn ASGI server with hot-reloading (ideal for testing).
+
 ```bash
 python -m uvicorn main:app --reload --port 8000
 ```
 
-### 3. Frontend Setup (React)
-The frontend is built using Vite and React, bundled and served securely by FastAPI.
-```bash
-cd frontend-react
-npm install
-npm run build
-```
-Once built, open your browser to `http://127.0.0.1:8000`. The frontend handles dynamic Markdown and KaTeX math rendering natively.
+### 7. Accessing the Sandbox
+1. Open your web browser and navigate to: **`http://127.0.0.1:8000`**
+2. Register a new user account (or log in).
+3. Start texting the Assistant. 
+4. **Admin Access:** If you wish to view the SOC Dashboard, you must manually change your user role to `admin` in the SQLite `sandbox.db` file, or register with the exact username "admin" (if allowed by your local router).
 
 ---
 
