@@ -92,4 +92,5 @@ async def submit_prompt(
         reason=reason,
         llm_response=llm_response,
         reformulation_tip=tip,
+        session_id=session_id,
     )

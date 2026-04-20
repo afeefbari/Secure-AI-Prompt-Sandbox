@@ -78,6 +78,7 @@ function AuthedApp({ onLogout, theme, toggleTheme }) {
   });
   const [activeChatId,    setActiveChatId]    = useState(null);
   const currentChatIdRef = useRef(null);
+  const sessionIdRef      = useRef(null);
 
   // ── Step helpers
   const setStep = useCallback((i, status, meta = null) =>
@@ -127,6 +128,7 @@ function AuthedApp({ onLogout, theme, toggleTheme }) {
   // ── New chat — full reset
   const startNewChat = useCallback(() => {
     currentChatIdRef.current = null;
+    sessionIdRef.current = null;
     setActiveChatId(null);
     setMessages([]);
     setSteps(initialSteps());
@@ -138,6 +140,7 @@ function AuthedApp({ onLogout, theme, toggleTheme }) {
   // ── Load existing chat from sidebar
   const loadChat = useCallback((chat) => {
     currentChatIdRef.current = chat.id;
+    sessionIdRef.current = null;
     setActiveChatId(chat.id);
     setMessages(chat.messages);
     setSteps(initialSteps());
@@ -167,7 +170,7 @@ function AuthedApp({ onLogout, theme, toggleTheme }) {
       const res = await fetch('/submit-prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ prompt: text, session_id: null }),
+        body: JSON.stringify({ prompt: text, session_id: sessionIdRef.current }),
       });
       if (res.status === 401) { localStorage.clear(); onLogout(); return; }
       data = await res.json();
@@ -178,6 +181,7 @@ function AuthedApp({ onLogout, theme, toggleTheme }) {
       return;
     }
 
+    if (data.session_id) sessionIdRef.current = data.session_id;
     setLastSecurity({ risk: data.risk_score, flags: data.flags, decision: data.decision });
     const flags = data.flags || [];
     

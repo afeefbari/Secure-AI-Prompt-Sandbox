@@ -47,6 +47,7 @@ class PromptResponse(BaseModel):
     reason: str
     llm_response: Optional[str] = None
     reformulation_tip: Optional[str] = None
+    session_id: Optional[str] = None
 
 
 # ── Audit ─────────────────────────────────────────────────────────────────────
