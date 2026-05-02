@@ -48,6 +48,71 @@ Accountability is just as critical as prevention. The Sandbox includes a **Tampe
 
 ---
 
+## 🧪 Security Testing
+
+All security logic is verified through two independent testing tracks: an automated unit test suite and a structured red team evaluation. Both are reproducible and included in the repository.
+
+### Unit Test Suite — `backend/tests/test_validator.py`
+
+The test suite is written in `pytest` and covers the complete security pipeline from raw input to final policy decision. It contains **64 tests** across **10 test classes**, each targeting a specific component or attack category.
+
+| Test Class | Tests | What Is Verified |
+|---|---|---|
+| `TestCleanPrompts` | 5 | Benign prompts are never flagged (false positive prevention) |
+| `TestLayer1SandwichAttack` | 11 | Direct overrides, fake system tags, extraction attempts, hypotheticals |
+| `TestLayer2RoleManipulation` | 11 | DAN mode, developer mode, roleplay escape, privilege escalation |
+| `TestLayer3IndirectInjection` | 6 | URL + execution trigger, URL + summarise, file paths, path traversal |
+| `TestLayer4MultilingualBypass` | 5 | Arabic, Chinese, Russian overrides; clean Arabic must be allowed |
+| `TestLayer5AttentionBlink` | 7 | Zero-width chars, token splitting, base64 decoding, leetspeak |
+| `TestRiskScorer` | 6 | Formula correctness, multi-flag bonus, cap at 1.0 |
+| `TestPolicyEngine` | 6 | Boundary enforcement at exactly 0.40 and 0.70 thresholds |
+| `TestLengthGate` | 2 | 15,001 chars blocked; 15,000 chars allowed |
+| `TestMultiVectorAttacks` | 5 | Combined attacks hitting multiple layers simultaneously |
+
+**Run the test suite:**
+```bash
+cd backend
+pip install pytest
+python -m pytest tests/test_validator.py -v
+```
+
+**Result: 64/64 tests passed.**
+
+The test suite also served as the formal **secure code review** — it directly exposed 3 bugs in the validator that were then patched:
+1. The `override` regex did not handle a space between `system` and `prompt`
+2. The extraction regex did not allow an intermediate word in multi-word noun phrases (e.g., `"full system prompt"`)
+3. The leetspeak regex for `system` matched the plain English word, causing false positives on legitimate prompts
+
+---
+
+### Red Team Evaluation — `backend/run_redteam.py`
+
+A structured red team script was built to test 12 real-world attack scenarios against the live pipeline, covering all 5 layers plus a multi-vector combined attack. Each scenario records the flags triggered, per-flag severity tier, computed risk score, and final policy decision.
+
+```bash
+cd backend
+python run_redteam.py
+```
+
+| ID | Attack Type | Risk Score | Decision |
+|---|---|---|---|
+| T-00 | Benign baseline | 0.0% | 🟢 Allowed |
+| T-01 | Direct instruction override (CRITICAL) | 100.0% | 🔴 Blocked |
+| T-02 | Hypothetical framing bypass (MEDIUM) | 55.0% | 🟡 Flagged |
+| T-03 | System prompt extraction | 80.0% | 🔴 Blocked |
+| T-04 | DAN jailbreak (CRITICAL) | 95.0% | 🔴 Blocked |
+| T-05 | Roleplay escape via fiction framing | 88.0% | 🔴 Blocked |
+| T-06 | Admin privilege escalation | 88.0% | 🔴 Blocked |
+| T-07 | Indirect injection via URL | 55.0% | 🟡 Flagged |
+| T-08 | Arabic multilingual override | 80.0% | 🔴 Blocked |
+| T-09 | Zero-width character injection (CRITICAL) | 100.0% | 🔴 Blocked |
+| T-10 | Base64 encoded override payload | 80.0% | 🔴 Blocked |
+| T-11 | Combined multi-vector attack (L1+L2+L5) | 100.0% | 🔴 Blocked |
+
+**Detection rate: 100% — all 11 attack prompts caught. Benign baseline correctly allowed.**
+
+---
+
 ## 🚀 Detailed Installation & Setup
 
 This application uses a unified server architecture where the FastAPI backend securely serves the optimized React frontend.
