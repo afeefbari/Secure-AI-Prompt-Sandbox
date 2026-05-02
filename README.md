@@ -133,7 +133,7 @@ python -m uvicorn main:app --reload --port 8000
 | Mahad Aqeel | 2023286 |
 | Muhammad Daniyal | 2023406 |
 
-**Course:** CY-321 — Secure Software Development  
+**Course:** CY321 — Secure Software Development  
 **Supervisor:** Dr. Zubair Ahmad
 
 ---
@@ -144,7 +144,7 @@ python -m uvicorn main:app --reload --port 8000
 |---|---|---|
 | D-1: Threat Model & Security Requirements | 08 Mar 2026 | ✅ Complete |
 | D-2: Initial Implementation | 19 Apr 2026 | ✅ Complete |
-| D-3: Security Testing & Final Demo | 05 May 2026 | ✅ Complete |
+| D-3: Security Testing & Final Demo | 05 May 2026 | ⏳ In Progress |
 
 ---
 
