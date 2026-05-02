@@ -33,10 +33,11 @@
   --accent-soft:    rgba(99, 102, 241, 0.08);
   --accent-mid:     rgba(99, 102, 241, 0.15);
 
-  /* Borders — very subtle */
+  /* Borders —very subtle */
   --border:         #e8ebf4;
-  --border-strong:  #d4d8e8;
+  --border-strong:  #d4d8e8; // for elevated cards and code blocks
 
+  
   /* Text hierarchy */
   --text-1:  #1a1d2e;
   --text-2:  #4b5270;
