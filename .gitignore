@@ -10,9 +10,9 @@ env/
 .venv/
 
 # Environment — NEVER commit real keys
-backend/.env
-backend/data/
-backend/sandbox.db
+Deliverable2/backend/.env
+Deliverable2/backend/data/
+Deliverable2/backend/sandbox.db
 
 # Node
 node_modules/

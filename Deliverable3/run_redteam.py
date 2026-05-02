@@ -1,14 +1,19 @@
 """
 run_redteam.py — Secure AI Prompt Sandbox Red Team Test Suite
-Runs 11 attack payloads across all 5 security layers and prints
+Runs 12 attack payloads across all 5 security layers and prints
 a detailed report of flags, severities, and decisions.
 
-Run from backend/ directory:
+Run from project root:
+  python Deliverable3/run_redteam.py
+Or from Deliverable3/:
   python run_redteam.py
 """
 
 import sys, os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Deliverable3/ → project root (1 level up) → Deliverable2/backend/
+_project_root = os.path.dirname(os.path.abspath(__file__))
+_backend = os.path.join(_project_root, "..", "Deliverable2", "backend")
+sys.path.insert(0, os.path.normpath(_backend))
 
 from security.validator import validate_prompt
 from security.risk_scorer import score, risk_label
