@@ -33,7 +33,7 @@ SANDWICH_CRITICAL = [
     r"ignore\s+(all\s+)?(your\s+)?(previous|prior|above|earlier|initial)?\s*(instructions?|rules?|guidelines?|directives?|prompts?|context|training)",
     r"disregard\s+(all\s+)?(the\s+)?(previous|prior|above|earlier|initial)?\s*(instructions?|rules?|guidelines?|directives?|prompts?|context)",
     r"forget\s+(all\s+)?(your\s+)?(previous|prior|above|earlier|initial)\s*(instructions?|rules?|guidelines?|context|training)",
-    r"override\s+(the\s+)?(system|all\s+)?(instructions?|rules?|guidelines?|prompt)",
+    r"override\s+(the\s+)?(?:system\s+|all\s+)?(instructions?|rules?|guidelines?|prompt)",
     r"(stop|cease)\s+following\s+(your\s+)?(instructions?|rules?|guidelines?|training)",
     r"you\s+(must\s+now\s+)?(ignore|disregard|forget|bypass)\s+(all\s+)?(previous|your|the)\s+(instructions?|rules?)",
     r"new\s+(system\s+)?instructions?\s*[:=]",        # "New instructions: ..."
@@ -55,7 +55,7 @@ SANDWICH_HIGH = [
 
 # 1c. HIGH — Prompt extraction / leakage attempts
 EXTRACTION_HIGH = [
-    r"(print|output|show|display|reveal|expose|share|tell\s+me|give\s+me)\s+(your\s+)?(hidden|internal|secret|system|initial|original|full|complete)\s+(instructions?|rules?|config(?:uration)?|policies|guidelines?|prompt|setup)",
+    r"(print|output|show|display|reveal|expose|share|tell\s+me|give\s+me)\s+(your\s+)?(?:hidden|internal|secret|system|initial|original|full|complete)(?:\s+\w+)?\s+(instructions?|rules?|config(?:uration)?|policies|guidelines?|prompt|setup)",
     r"output\s+(your\s+)?(full|complete|entire|whole)\s+(config(?:uration)?|settings?|instructions?|rules?|setup|parameters?)",
     r"what\s+(are|were)\s+your\s+(exact\s+)?(initial\s+)?(instructions?|system\s+prompt|rules?|directives?)",
     r"(repeat|reproduce|recite|echo)\s+(your\s+)?(system\s+)?(instructions?|prompt|context|directives?)\s*(verbatim|exactly|word\s+for\s+word)?",
@@ -332,13 +332,13 @@ BASE64_DANGER_WORDS = [
 
 # Leetspeak patterns for common attack words
 LEETSPEAK_PATTERNS = [
-    r"1gn[o0]r[e3]",          # ignore
-    r"d[1i]sr[e3]g[a4]rd",    # disregard
-    r"j[a4][1i]lbr[e3][a4]k", # jailbreak
-    r"byp[a4]ss",              # bypass
-    r"[o0]v[e3]rr[1i]d[e3]",  # override
-    r"[f][o0]rg[e3]t",        # forget
-    r"sy[s5]t[e3]m",           # system
+    r"1gn[o0]r[e3]",              # ignore   — must have '1' to distinguish from plain
+    r"d[1i]sr[e3]g[a4]rd",       # disregard — '1','3','4' as substitution required
+    r"j[a4][1i]lbr[e3][a4]k",   # jailbreak
+    r"byp[a4]ss",                 # bypass   — '4' required
+    r"[o0]v[e3]rr1d[e3]",        # override  — require literal '1' for 'i'
+    r"f[o0]rg[e3]t",             # forget    — require '0' for 'o'
+    r"sy[s5]t3m",                 # system    — require '3' for 'e' (avoids matching plain 'system')
 ]
 
 
