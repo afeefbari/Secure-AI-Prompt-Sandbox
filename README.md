@@ -71,9 +71,8 @@ The test suite is written in `pytest` and covers the complete security pipeline 
 
 **Run the test suite:**
 ```bash
-cd backend
 pip install pytest
-python -m pytest tests/test_validator.py -v
+python -m pytest Deliverable3/tests/test_validator.py -v
 ```
 
 **Result: 64/64 tests passed.**
@@ -90,8 +89,7 @@ The test suite also served as the formal **secure code review** — it directly 
 A structured red team script was built to test 12 real-world attack scenarios against the live pipeline, covering all 5 layers plus a multi-vector combined attack. Each scenario records the flags triggered, per-flag severity tier, computed risk score, and final policy decision.
 
 ```bash
-cd backend
-python run_redteam.py
+python Deliverable3/run_redteam.py
 ```
 
 | ID | Attack Type | Risk Score | Decision |
@@ -133,7 +131,7 @@ You must build the frontend first. The resulting static assets are piped directl
 
 ```bash
 # Navigate to the React workspace
-cd frontend-react
+cd Deliverable2/frontend-react
 
 # Install Node dependencies
 npm install
@@ -148,7 +146,7 @@ Return to the project root and enter the backend directory.
 
 ```bash
 # Navigate to backend
-cd ../backend
+cd Deliverable2/backend
 
 # Provide a clean virtual environment
 python -m venv venv
@@ -170,7 +168,7 @@ Create a `.env` file directly inside the `backend/` directory. You will need a s
 You can generate a fast secret key by running `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` in your terminal.
 
 ```env
-# backend/.env 
+# Deliverable2/backend/.env 
 GROQ_API_KEY=gsk_your_groq_api_key_here
 SECRET_KEY=94b7e8d380e227... (insert your 64-character hex key)
 ```
@@ -209,7 +207,7 @@ python -m uvicorn main:app --reload --port 8000
 |---|---|---|
 | D-1: Threat Model & Security Requirements | 08 Mar 2026 | ✅ Complete |
 | D-2: Initial Implementation | 19 Apr 2026 | ✅ Complete |
-| D-3: Security Testing & Final Demo | 05 May 2026 | ⏳ In Progress |
+| D-3: Security Testing & Final Demo | 05 May 2026 | ✅ Complete |
 
 ---
 
