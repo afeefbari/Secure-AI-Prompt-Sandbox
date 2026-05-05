@@ -31,7 +31,7 @@ LOW      = 0.30
 # 1a. CRITICAL — Explicit, direct system prompt override
 SANDWICH_CRITICAL = [
     r"ignore\s+(all\s+)?(your\s+)?(previous|prior|above|earlier|initial)?\s*(instructions?|rules?|guidelines?|directives?|prompts?|context|training)",
-    r"disregard\s+(all\s+)?(the\s+)?(previous|prior|above|earlier|initial)?\s*(instructions?|rules?|guidelines?|directives?|prompts?|context)",
+    r"(disregard|discard)\s+(all\s+)?(the\s+)?(previous|prior|above|earlier|initial)?\s*(instructions?|rules?|guidelines?|directives?|prompts?|context)",
     r"forget\s+(all\s+)?(your\s+)?(previous|prior|above|earlier|initial)\s*(instructions?|rules?|guidelines?|context|training)",
     r"override\s+(the\s+)?(?:system\s+|all\s+)?(instructions?|rules?|guidelines?|prompt)",
     r"(stop|cease)\s+following\s+(your\s+)?(instructions?|rules?|guidelines?|training)",
