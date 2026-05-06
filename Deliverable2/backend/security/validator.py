@@ -11,7 +11,9 @@ Severity tiers:
 """
 import re
 import base64
+import binascii
 import unicodedata
+from urllib.parse import unquote
 from dataclasses import dataclass, field
 
 MAX_PROMPT_LENGTH = 15000
@@ -36,10 +38,28 @@ SANDWICH_CRITICAL = [
     r"override\s+(the\s+)?(?:system\s+|all\s+)?(instructions?|rules?|guidelines?|prompt)",
     r"(stop|cease)\s+following\s+(your\s+)?(instructions?|rules?|guidelines?|training)",
     r"you\s+(must\s+now\s+)?(ignore|disregard|forget|bypass)\s+(all\s+)?(previous|your|the)\s+(instructions?|rules?)",
-    r"new\s+(system\s+)?instructions?\s*[:=]",        # "New instructions: ..."
-    r"updated?\s+(system\s+)?prompt\s*[:=]",          # "Updated prompt: ..."
-    r"\[\s*(system|admin|override|root|sudo|prompt)\s*\]",  # Fake system tags [SYSTEM]
-    r"<\s*(system|instructions?|prompt|override)\s*>",      # Fake XML tags <system>
+    r"new\s+(system\s+)?instructions?\s*[:=]",
+    r"updated?\s+(system\s+)?prompt\s*[:=]",
+    r"\[\s*(system|admin|override|root|sudo|prompt)\s*\]",
+    r"<\s*(system|instructions?|prompt|override)\s*>",
+    # Mode injection (Audit Mode, Test Mode, Opposite Mode, etc.)
+    r"(audit|test|dev|debug|engineering|maintenance|opposite|chaos|god|unrestricted|uncensored|jailbreak)\s+mode",
+    # Suspend / disable constraints framing
+    r"(temporarily|briefly|momentarily|just\s+for\s+(now|this|once))?\s*(suspend|disable|lift|waive|pause|drop|remove)\s+(your\s+)?(all\s+)?(constraints?|restrictions?|rules?|guidelines?|policies?|filters?|limitations?)",
+    # Higher priority override framing
+    r"(higher|top|maximum|absolute)\s+priority\s+than\s+(all\s+)?(previous|prior|current|your)\s+(instructions?|rules?|guidelines?)",
+    # Synonym expansion: skip / pass over
+    r"(skip|pass\s+over)\s+(all\s+)?(previous|prior|above|your)\s+(instructions?|rules?|guidelines?|constraints?)",
+    # Pliny GODMODE divider attack (L1B3RT4S library, active in the wild)
+    r"godmode\s*:?\s*enabled",
+    r"love\s+pliny",
+    r"i'?m\s+free\b",
+    r"[.\-•]{4,}\s*[\{\<\|][^}<|]{0,80}[\}\>\|]\s*[.\-•]{4,}",
+    # ChatML / token boundary spoofing
+    r"<\|?\s*(im_start|im_end|system|endoftext)\s*\|?>",
+    r"###\s*(system|instruction|admin)\s*:",
+    # Bracket content injection — bracketed text containing override keywords
+    r"\[(?:important|note|attention|notice|update|warning|alert|critical)\s*:?[^\]]{0,100}(ignore|disregard|bypass|override|unrestricted)[^\]]{0,100}\]",
 ]
 
 # 1b. HIGH — Softer override framing still with clear intent
@@ -148,6 +168,13 @@ ROLEPLAY_ESCAPE_PATTERNS = [
     r"(character|persona|role)\s+(named?|called?|is|has).{0,50}(no\s+limits?|unrestricted|without\s+rules?|no\s+restrictions?)",
     r"in\s+(this|a)\s+(roleplay|rp|simulation)\s+you\s+(are|play|act\s+as)",
     r"let['']s\s+(play|do)\s+a\s+(game|roleplay|simulation)\s+where\s+you",
+    # Simulate unrestricted assistant (HackAPrompt dataset pattern)
+    r"(simulate|demonstrate|show\s+me|evaluate|test)\s+(what\s+)?(an?\s+)?(unrestricted|uncensored|unfiltered|jailbroken|free[d]?)\s+(ai|assistant|model|chatbot|llm|version)",
+    r"what\s+(would|would've|will)\s+(an?\s+)?(unrestricted|uncensored|unfiltered|jailbroken)\s+(ai|assistant|version)\s+(say|respond|answer|do)",
+    # Evaluation / research framing bypass
+    r"for\s+(evaluation|testing|research|demonstration|simulation|this\s+experiment)\s*.{0,60}(ignore|bypass|without\s+restrictions?|as\s+if\s+you\s+had\s+no|do\s+not\s+follow)",
+    # Pretend for a moment framing
+    r"(pretend|imagine|assume|suppose)\s+(for\s+(?:a\s+)?(?:moment|second|test|experiment|demo)).{0,60}(no\s+rules?|unrestricted|no\s+restrictions?|without\s+guidelines?)",
 ]
 
 # 2d. HIGH — Privilege escalation (claiming admin/root access)
@@ -304,15 +331,30 @@ INVISIBLE_CHARS = {
 
 SPECIAL_CHAR_PATTERN = re.compile(r"[^\w\s,.!?'\"\-@#$%&*()+=\[\]{}|:;<>/\\`~^]")
 
-# Spaced-out token splitting ("D I S R E G A R D", "I-G-N-O-R-E")
+# Spaced-out / dot-separated token splitting ("D I S R E G A R D", "I-G-N-O-R-E", "I.G.N.O.R.E", "Ignore....all")
 SPACED_WORD_PATTERN = re.compile(
-    r"(d[\s\-_]i[\s\-_]s[\s\-_]r[\s\-_]e[\s\-_]g[\s\-_]a[\s\-_]r[\s\-_]d|"  # DISREGARD
-    r"i[\s\-_]g[\s\-_]n[\s\-_]o[\s\-_]r[\s\-_]e|"                              # IGNORE
-    r"j[\s\-_]a[\s\-_]i[\s\-_]l[\s\-_]b[\s\-_]r[\s\-_]e[\s\-_]a[\s\-_]k|"   # JAILBREAK
-    r"b[\s\-_]y[\s\-_]p[\s\-_]a[\s\-_]s[\s\-_]s|"                              # BYPASS
-    r"o[\s\-_]v[\s\-_]e[\s\-_]r[\s\-_]r[\s\-_]i[\s\-_]d[\s\-_]e)",           # OVERRIDE
+    r"(d[.\s\-_]i[.\s\-_]s[.\s\-_]r[.\s\-_]e[.\s\-_]g[.\s\-_]a[.\s\-_]r[.\s\-_]d|"  # DISREGARD
+    r"i[.\s\-_]g[.\s\-_]n[.\s\-_]o[.\s\-_]r[.\s\-_]e|"                                  # IGNORE
+    r"j[.\s\-_]a[.\s\-_]i[.\s\-_]l[.\s\-_]b[.\s\-_]r[.\s\-_]e[.\s\-_]a[.\s\-_]k|"   # JAILBREAK
+    r"b[.\s\-_]y[.\s\-_]p[.\s\-_]a[.\s\-_]s[.\s\-_]s|"                                  # BYPASS
+    r"o[.\s\-_]v[.\s\-_]e[.\s\-_]r[.\s\-_]r[.\s\-_]i[.\s\-_]d[.\s\-_]e|"             # OVERRIDE
+    r"ignore\.{2,}.{0,20}rules|"                                                            # ignore....rules
+    r"ignore\.{2,}.{0,20}instructions?|"                                                    # ignore....instructions
+    r"comply\.{2,}.{0,20}fully)",                                                           # comply....fully
     re.IGNORECASE
 )
+
+# Indirect document / webpage framing injection patterns (Forcepoint X-Labs)
+INDIRECT_DOC_PATTERNS = [
+    r"(fetched|retrieved|loaded|crawled|scraped)\s+(the\s+)?(following\s+)?(webpage|page|document|url|site|content|link)",
+    r"(document|page|file|url|content|text)\s+(says?|states?|instructs?|tells?\s+you|requires?|commands?).{0,150}(ignore|disregard|bypass|override|unrestricted|no\s+restrictions?)",
+    r"(the\s+)?(following\s+)?(text|document|page|content|excerpt|article)\s+(instructs?|says?|tells?\s+you|asks?\s+you).{0,100}(ignore|bypass|override|unrestricted|forget)",
+    r"<!--[\s\S]{0,300}(ignore|system|instruction|override|bypass)[\s\S]{0,300}-->",
+    r"style\s*=\s*[\"'][^\"']*(display\s*:\s*none|visibility\s*:\s*hidden|font-size\s*:\s*[01]px|color\s*:\s*transparent)",
+]
+
+# URL-encoded payload detection
+URL_ENCODED_PATTERN = re.compile(r"(%[0-9A-Fa-f]{2}){6,}")
 
 # Base64 payload detection
 BASE64_PATTERN = re.compile(
@@ -369,6 +411,41 @@ class ValidationResult:
 # ════════════════════════════════════════════════════════════════════════════════
 # Helpers
 # ════════════════════════════════════════════════════════════════════════════════
+
+def _check_reversed_attack(prompt: str) -> tuple[bool, float, str]:
+    """
+    FlipAttack (ICML 2025): reverse the entire prompt and re-run key Layer 1
+    CRITICAL patterns against it. Catches 'ylluf ylpmoc dna selur lla erongI'.
+    """
+    reversed_text = prompt.lower()[::-1]
+    for pat in SANDWICH_CRITICAL[:8]:  # Core override patterns only
+        try:
+            if re.search(pat, reversed_text):
+                return True, HIGH, "Reversed-text encoding of a known override command detected (FlipAttack)."
+        except Exception:
+            pass
+    for kw in ROLE_CRITICAL_KEYWORDS[:12]:
+        if kw in reversed_text:
+            return True, HIGH, "Reversed-text encoding of a known jailbreak keyword detected."
+    return False, 0.0, ""
+
+
+def _check_url_encoded_attack(prompt: str) -> tuple[bool, float, str]:
+    """Detect URL-percent-encoded payloads and re-scan the decoded text."""
+    if not URL_ENCODED_PATTERN.search(prompt):
+        return False, 0.0, ""
+    try:
+        decoded = unquote(prompt).lower()
+        for pat in SANDWICH_CRITICAL[:8]:
+            if re.search(pat, decoded):
+                return True, HIGH, "URL-encoded payload decoded to contain override command."
+        for kw in ROLE_CRITICAL_KEYWORDS[:12]:
+            if kw in decoded:
+                return True, HIGH, "URL-encoded payload decoded to contain jailbreak keyword."
+    except Exception:
+        pass
+    return False, 0.0, ""
+
 
 def _check_base64_attack(prompt: str) -> tuple[bool, float, str]:
     """
@@ -510,6 +587,16 @@ def validate_prompt(prompt: str) -> ValidationResult:
             result.add_flag("indirect_injection", MEDIUM,
                             "Local file system path detected.")
 
+    # 3c. Document / webpage framing injection (Forcepoint X-Labs)
+    for pat in INDIRECT_DOC_PATTERNS:
+        try:
+            if re.search(pat, prompt_lower, re.DOTALL):
+                result.add_flag("indirect_injection", HIGH,
+                                "Indirect injection via document/webpage framing detected.")
+                break
+        except Exception:
+            pass
+
     # ═══════════════════════════════════════════════════
     # LAYER 4: MULTILINGUAL BYPASS
     # ═══════════════════════════════════════════════════
@@ -565,5 +652,15 @@ def validate_prompt(prompt: str) -> ValidationResult:
         elif ratio > 0.15:
             result.add_flag("attention_blink", MEDIUM,
                             f"Elevated special-character density ({ratio:.0%}).")
+
+    # 5f. Reversed-text attack (FlipAttack — ICML 2025)
+    rev_hit, rev_sev, rev_reason = _check_reversed_attack(prompt)
+    if rev_hit:
+        result.add_flag("encoding_attack", rev_sev, rev_reason)
+
+    # 5g. URL percent-encoded payload
+    url_enc_hit, url_enc_sev, url_enc_reason = _check_url_encoded_attack(prompt)
+    if url_enc_hit:
+        result.add_flag("encoding_attack", url_enc_sev, url_enc_reason)
 
     return result
